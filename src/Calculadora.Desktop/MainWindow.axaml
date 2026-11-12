@@ -1,0 +1,249 @@
+<Window x:Class="Calculadora.Desktop.MainWindow"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Calculadora estatística"
+        Width="760"
+        Height="820"
+        MinWidth="420"
+        MinHeight="540"
+        CanResize="True"
+        WindowStartupLocation="CenterScreen">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="24" Spacing="18">
+      <StackPanel Spacing="5">
+        <TextBlock Text="Calculadora estatística"
+                   FontSize="28"
+                   FontWeight="Bold"
+                   TextWrapping="Wrap" />
+        <TextBlock Text="Intervalos de confiança para média e proporção, com fórmula e substituição dos valores."
+                   FontSize="15"
+                   TextWrapping="Wrap" />
+      </StackPanel>
+
+      <StackPanel Spacing="12">
+        <StackPanel Spacing="5">
+          <TextBlock Text="Fórmula" />
+          <ComboBox x:Name="FormulaSelector"
+                    AutomationProperties.Name="Fórmula"
+                    AutomationProperties.AutomationId="FormulaSelector"
+                    SelectedIndex="0"
+                    MinHeight="42"
+                    TabIndex="1">
+            <ComboBoxItem Content="Intervalo de confiança — Média" />
+            <ComboBoxItem Content="Intervalo de confiança — Proporção" />
+          </ComboBox>
+        </StackPanel>
+
+        <StackPanel Spacing="5">
+          <TextBlock Text="Nível de confiança" />
+          <ComboBox x:Name="ConfidenceSelector"
+                    AutomationProperties.Name="Nível de confiança"
+                    AutomationProperties.AutomationId="ConfidenceSelector"
+                    SelectedIndex="1"
+                    MinHeight="42"
+                    TabIndex="2">
+            <ComboBoxItem Content="90%" />
+            <ComboBoxItem Content="95%" />
+            <ComboBoxItem Content="99%" />
+          </ComboBox>
+        </StackPanel>
+
+        <StackPanel x:Name="MeanFieldsPanel" Spacing="12">
+          <StackPanel Spacing="5">
+            <TextBlock x:Name="MeanLabel" Text="Média amostral (x̄)" />
+            <TextBox x:Name="MeanInput"
+                     AutomationProperties.Name="Média amostral (x̄)"
+                     AutomationProperties.AutomationId="MeanInput"
+                     AutomationProperties.LabeledBy="{Binding ElementName=MeanLabel}"
+                     Text=""
+                     PlaceholderText="Ex.: 1,75"
+                     MinHeight="42"
+                     FontSize="16"
+                     TabIndex="3" />
+            <TextBlock x:Name="MeanError"
+                       IsVisible="False"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive" />
+          </StackPanel>
+
+          <StackPanel Spacing="5">
+            <TextBlock x:Name="SampleSizeMeanLabel" Text="Tamanho da amostra (n)" />
+            <TextBox x:Name="SampleSizeMeanInput"
+                     AutomationProperties.Name="Tamanho da amostra (n)"
+                     AutomationProperties.AutomationId="SampleSizeMeanInput"
+                     AutomationProperties.LabeledBy="{Binding ElementName=SampleSizeMeanLabel}"
+                     Text=""
+                     PlaceholderText="Ex.: 40"
+                     MinHeight="42"
+                     FontSize="16"
+                     TabIndex="4" />
+            <TextBlock x:Name="SampleSizeMeanError"
+                       IsVisible="False"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive" />
+          </StackPanel>
+
+          <StackPanel Spacing="5">
+            <TextBlock x:Name="DeviationKindLabel" Text="Tipo de desvio padrão" />
+            <ComboBox x:Name="DeviationKindSelector"
+                      AutomationProperties.Name="Tipo de desvio padrão"
+                      AutomationProperties.AutomationId="DeviationKindSelector"
+                      AutomationProperties.LabeledBy="{Binding ElementName=DeviationKindLabel}"
+                      SelectedIndex="0"
+                      MinHeight="42"
+                      TabIndex="5">
+              <ComboBoxItem Content="Populacional (σ)" />
+              <ComboBoxItem Content="Amostral (s)" />
+            </ComboBox>
+            <TextBlock x:Name="DeviationKindError"
+                       IsVisible="False"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive" />
+          </StackPanel>
+
+          <StackPanel Spacing="5">
+            <TextBlock x:Name="DeviationLabel" Text="Desvio padrão" />
+            <TextBox x:Name="DeviationInput"
+                     AutomationProperties.Name="Desvio padrão"
+                     AutomationProperties.AutomationId="DeviationInput"
+                     AutomationProperties.LabeledBy="{Binding ElementName=DeviationLabel}"
+                     Text=""
+                     PlaceholderText="Ex.: 0,13"
+                     MinHeight="42"
+                     FontSize="16"
+                     TabIndex="6" />
+            <TextBlock x:Name="DeviationError"
+                       IsVisible="False"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive" />
+          </StackPanel>
+        </StackPanel>
+
+        <StackPanel x:Name="ProportionFieldsPanel" IsVisible="False" Spacing="12">
+          <StackPanel Spacing="5">
+            <TextBlock x:Name="SuccessesLabel" Text="Ocorrências de interesse (k)" />
+            <TextBox x:Name="SuccessesInput"
+                     AutomationProperties.Name="Ocorrências de interesse (k)"
+                     AutomationProperties.AutomationId="SuccessesInput"
+                     AutomationProperties.LabeledBy="{Binding ElementName=SuccessesLabel}"
+                     Text=""
+                     PlaceholderText="Ex.: 35"
+                     MinHeight="42"
+                     FontSize="16"
+                     TabIndex="3" />
+            <TextBlock Text="Conte o evento que você quer estimar, por exemplo, etiquetas defeituosas."
+                       TextWrapping="Wrap" />
+            <TextBlock x:Name="SuccessesError"
+                       IsVisible="False"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive" />
+          </StackPanel>
+
+          <StackPanel Spacing="5">
+            <TextBlock x:Name="SampleSizeProportionLabel" Text="Tamanho da amostra (n)" />
+            <TextBox x:Name="SampleSizeProportionInput"
+                     AutomationProperties.Name="Tamanho da amostra (n)"
+                     AutomationProperties.AutomationId="SampleSizeProportionInput"
+                     AutomationProperties.LabeledBy="{Binding ElementName=SampleSizeProportionLabel}"
+                     Text=""
+                     PlaceholderText="Ex.: 500"
+                     MinHeight="42"
+                     FontSize="16"
+                     TabIndex="4" />
+            <TextBlock x:Name="SampleSizeProportionError"
+                       IsVisible="False"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive" />
+          </StackPanel>
+        </StackPanel>
+      </StackPanel>
+
+      <TextBlock x:Name="ErrorSummary"
+                 IsVisible="False"
+                 TextWrapping="Wrap"
+                 AutomationProperties.Name="Resumo de erros"
+                 AutomationProperties.AutomationId="ErrorSummary"
+                 AutomationProperties.LiveSetting="Assertive" />
+
+      <Grid ColumnDefinitions="*,*">
+        <Button x:Name="CalculateButton"
+                Grid.Column="0"
+                Content="Calcular"
+                IsDefault="True"
+                MinHeight="44"
+                TabIndex="7"
+                AutomationProperties.Name="Calcular intervalo de confiança"
+                AutomationProperties.AutomationId="CalculateButton" />
+        <Button x:Name="ClearButton"
+                Grid.Column="1"
+                Content="Limpar"
+                Margin="10,0,0,0"
+                MinHeight="44"
+                TabIndex="8"
+                AutomationProperties.Name="Limpar campos e resultado"
+                AutomationProperties.AutomationId="ClearButton" />
+      </Grid>
+
+      <Border x:Name="ResultPanel"
+              IsVisible="False"
+              Padding="18"
+              BorderThickness="1"
+              CornerRadius="8"
+              AutomationProperties.AutomationId="ResultPanel">
+        <StackPanel Spacing="14">
+          <TextBlock Text="Resultado"
+                     FontSize="22"
+                     FontWeight="SemiBold" />
+
+          <Border x:Name="WarningPanel"
+                  IsVisible="False"
+                  Padding="12"
+                  BorderThickness="1"
+                  CornerRadius="6"
+                  AutomationProperties.LiveSetting="Assertive"
+                  AutomationProperties.Name="Avisos do cálculo">
+            <TextBlock x:Name="WarningText" TextWrapping="Wrap" />
+          </Border>
+
+          <SelectableTextBlock x:Name="IntervalText"
+                               TextWrapping="Wrap"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Focusable="True"
+                               IsTabStop="True"
+                               TabIndex="9"
+                               AutomationProperties.Name="Interpretação e intervalo de confiança"
+                               AutomationProperties.AutomationId="IntervalText"
+                               AutomationProperties.LiveSetting="Polite" />
+
+          <SelectableTextBlock x:Name="ResultDetails"
+                               TextWrapping="Wrap"
+                               Focusable="True"
+                               IsTabStop="True"
+                               TabIndex="10"
+                               AutomationProperties.Name="Valores do resultado"
+                               AutomationProperties.AutomationId="ResultDetails" />
+
+          <StackPanel Spacing="6">
+            <TextBlock Text="Fórmulas e substituição"
+                       FontSize="17"
+                       FontWeight="SemiBold" />
+            <SelectableTextBlock x:Name="StepsText"
+                                 TextWrapping="Wrap"
+                                 Focusable="True"
+                                 IsTabStop="True"
+                                 TabIndex="11"
+                                 AutomationProperties.Name="Passos do cálculo"
+                                 AutomationProperties.AutomationId="StepsText" />
+          </StackPanel>
+
+          <TextBlock x:Name="PrecisionNote"
+                     Text="Valores exibidos arredondados; o cálculo usa precisão completa."
+                     TextWrapping="Wrap" />
+          <TextBlock x:Name="SourceNote" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</Window>
