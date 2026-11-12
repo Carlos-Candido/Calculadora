@@ -10,6 +10,9 @@ public partial class MainWindow : Window
     private static readonly CultureInfo BrazilianCulture = CultureInfo.GetCultureInfo("pt-BR");
     private bool _isUpdatingControls;
     private CalculationInput? _calculationInput;
+    private TextBox? _activeInput;
+    private int _selectionStart;
+    private int _selectionEnd;
 
     public MainWindow()
     {
@@ -19,16 +22,31 @@ public partial class MainWindow : Window
         FormulaSelector.SelectionChanged += FormulaSelector_OnSelectionChanged;
         ConfidenceSelector.SelectionChanged += Selection_OnSelectionChanged;
         DeviationKindSelector.SelectionChanged += Selection_OnSelectionChanged;
-        MeanInput.TextChanged += Input_OnTextChanged;
-        SampleSizeMeanInput.TextChanged += Input_OnTextChanged;
-        DeviationInput.TextChanged += Input_OnTextChanged;
-        SuccessesInput.TextChanged += Input_OnTextChanged;
-        SampleSizeProportionInput.TextChanged += Input_OnTextChanged;
+        RegisterNumericInput(MeanInput);
+        RegisterNumericInput(SampleSizeMeanInput);
+        RegisterNumericInput(DeviationInput);
+        RegisterNumericInput(SuccessesInput);
+        RegisterNumericInput(SampleSizeProportionInput);
         CalculateButton.Click += CalculateButton_OnClick;
         ClearButton.Click += ClearButton_OnClick;
+        BackspaceButton.Click += BackspaceButton_OnClick;
+        ClearEntryButton.Click += ClearEntryButton_OnClick;
+        SignButton.Click += SignButton_OnClick;
+        DecimalButton.Click += DecimalButton_OnClick;
+        Key0Button.Click += (_, _) => InsertDigit('0');
+        Key1Button.Click += (_, _) => InsertDigit('1');
+        Key2Button.Click += (_, _) => InsertDigit('2');
+        Key3Button.Click += (_, _) => InsertDigit('3');
+        Key4Button.Click += (_, _) => InsertDigit('4');
+        Key5Button.Click += (_, _) => InsertDigit('5');
+        Key6Button.Click += (_, _) => InsertDigit('6');
+        Key7Button.Click += (_, _) => InsertDigit('7');
+        Key8Button.Click += (_, _) => InsertDigit('8');
+        Key9Button.Click += (_, _) => InsertDigit('9');
         Opened += (_, _) => FocusFirstActiveInput();
 
         UpdateInputVisibility();
+        UpdateKeypadCapabilities();
         _isUpdatingControls = false;
     }
 
@@ -149,6 +167,9 @@ public partial class MainWindow : Window
             _isUpdatingControls = false;
         }
 
+        _activeInput = null;
+        _selectionStart = 0;
+        _selectionEnd = 0;
         InvalidateResult();
         FocusFirstActiveInput();
     }
@@ -156,7 +177,8 @@ public partial class MainWindow : Window
     private void InvalidateResult()
     {
         _calculationInput = null;
-        ResultPanel.IsVisible = false;
+        ResultPanel.IsVisible = true;
+        DetailsPanel.IsVisible = false;
         ResultDetails.Text = string.Empty;
         IntervalText.Text = string.Empty;
         StepsText.Text = string.Empty;
@@ -172,6 +194,7 @@ public partial class MainWindow : Window
         ClearFieldError(SampleSizeProportionError);
         ErrorSummary.Text = string.Empty;
         ErrorSummary.IsVisible = false;
+        UpdateEntryDisplay();
     }
 
     private void RenderResult(IntervalResult result)
@@ -182,6 +205,8 @@ public partial class MainWindow : Window
         var alpha = (result.Alpha * 100).ToString("F0", BrazilianCulture) + "%";
         var z = result.Z.ToString("0.###", BrazilianCulture);
 
+        DisplayModeText.Text = $"INTERVALO DE CONFIANÇA · {confidence}%";
+        DisplayContextText.Text = input.IsMean ? "Média populacional" : "Proporção populacional";
         if (input.IsMean)
         {
             var lower = FormatDecimal(result.LowerBound);
@@ -191,6 +216,7 @@ public partial class MainWindow : Window
                 ? "desvio padrão populacional (σ)"
                 : "desvio padrão amostral (s)";
 
+            DisplayText.Text = $"({lower}; {upper})";
             IntervalText.Text =
                 $"Intervalo de confiança de {confidence}% para a média populacional: de {lower} a {upper}.\n" +
                 $"IC = ({lower}; {upper})";
@@ -220,6 +246,7 @@ public partial class MainWindow : Window
             var successes = FormatInteger(input.Successes);
             var sampleSize = FormatInteger(input.SampleSize);
 
+            DisplayText.Text = $"({lowerPercent}; {upperPercent})";
             IntervalText.Text =
                 $"Intervalo de confiança de {confidence}% para a proporção populacional: de {lowerPercent} a {upperPercent}.\n" +
                 $"IC = ({lower}; {upper}) = ({lowerPercent}; {upperPercent})";
@@ -247,7 +274,241 @@ public partial class MainWindow : Window
             warnings.Add("A fórmula normal produziu limites fora de 0% a 100%; interprete com cautela.");
         WarningText.Text = string.Join(Environment.NewLine, warnings);
         WarningPanel.IsVisible = warnings.Count > 0;
+        DetailsPanel.IsVisible = true;
         ResultPanel.IsVisible = true;
+    }
+
+    private void RegisterNumericInput(TextBox input)
+    {
+        input.ClearSelectionOnLostFocus = false;
+        input.GotFocus += (_, _) => Input_OnGotFocus(input);
+        input.LostFocus += (_, _) => CaptureInputSelection(input);
+        input.TextChanged += Input_OnTextChanged;
+    }
+
+    private void Input_OnGotFocus(TextBox input)
+    {
+        if (ReferenceEquals(_activeInput, input))
+            RestoreInputSelection(input);
+        else
+            CaptureSelection(input);
+
+        _activeInput = input;
+        UpdateKeypadCapabilities();
+        UpdateEntryDisplay();
+    }
+
+    private void CaptureInputSelection(TextBox input)
+    {
+        if (ReferenceEquals(_activeInput, input))
+            CaptureSelection(input);
+    }
+
+    private void CaptureSelection(TextBox input)
+    {
+        var textLength = input.Text?.Length ?? 0;
+        _selectionStart = Math.Clamp(input.SelectionStart, 0, textLength);
+        _selectionEnd = Math.Clamp(input.SelectionEnd, 0, textLength);
+    }
+
+    private void RestoreInputSelection(TextBox input)
+    {
+        var textLength = input.Text?.Length ?? 0;
+        _selectionStart = Math.Clamp(_selectionStart, 0, textLength);
+        _selectionEnd = Math.Clamp(_selectionEnd, 0, textLength);
+        input.SelectionStart = _selectionStart;
+        input.SelectionEnd = _selectionEnd;
+    }
+
+    private void SetInputSelection(TextBox input, int start, int end)
+    {
+        var textLength = input.Text?.Length ?? 0;
+        _selectionStart = Math.Clamp(start, 0, textLength);
+        _selectionEnd = Math.Clamp(end, 0, textLength);
+        input.SelectionStart = _selectionStart;
+        input.SelectionEnd = _selectionEnd;
+    }
+
+    private void InsertDigit(char digit)
+    {
+        var input = GetActiveInputForEditing();
+        if (input is not null)
+            ReplaceSelection(input, digit.ToString());
+    }
+
+    private void InsertDecimalSeparator()
+    {
+        var input = GetActiveInputForEditing();
+        if (input is null || !IsDecimalInput(input))
+            return;
+
+        var text = input.Text ?? string.Empty;
+        var (start, end) = GetSelectionRange(input);
+        var remainingText = text.Remove(start, end - start);
+        if (remainingText.IndexOf(',') >= 0 || remainingText.IndexOf('.') >= 0)
+            return;
+
+        ReplaceSelection(input, ",");
+    }
+
+    private void ToggleSign()
+    {
+        var input = GetActiveInputForEditing();
+        if (input is null || !IsDecimalInput(input))
+            return;
+
+        var originalText = input.Text ?? string.Empty;
+        var (start, end) = GetSelection(input);
+        var text = originalText.Trim();
+        var removedPrefixLength = originalText.Length - originalText.TrimStart().Length;
+        start = Math.Clamp(start - removedPrefixLength, 0, text.Length);
+        end = Math.Clamp(end - removedPrefixLength, 0, text.Length);
+
+        string toggledText;
+        if (text.StartsWith("-", StringComparison.Ordinal))
+        {
+            toggledText = text[1..];
+            start = Math.Max(0, start - 1);
+            end = Math.Max(0, end - 1);
+        }
+        else if (text.StartsWith("+", StringComparison.Ordinal))
+        {
+            toggledText = "-" + text[1..];
+        }
+        else
+        {
+            toggledText = "-" + text;
+            start++;
+            end++;
+        }
+
+        input.Text = toggledText;
+        SetInputSelection(input, start, end);
+        UpdateEntryDisplay();
+    }
+
+    private void Backspace()
+    {
+        var input = GetActiveInputForEditing();
+        if (input is null)
+            return;
+
+        var text = input.Text ?? string.Empty;
+        var (start, end) = GetSelectionRange(input);
+        if (start == end)
+        {
+            if (start == 0)
+                return;
+
+            start--;
+        }
+
+        input.Text = text.Remove(start, end - start);
+        SetInputSelection(input, start, start);
+        UpdateEntryDisplay();
+    }
+
+    private void ClearActiveEntry()
+    {
+        var input = GetActiveInputForEditing();
+        if (input is null)
+            return;
+
+        input.Text = string.Empty;
+        SetInputSelection(input, 0, 0);
+        UpdateEntryDisplay();
+    }
+
+    private void ReplaceSelection(TextBox input, string insertedText)
+    {
+        var text = input.Text ?? string.Empty;
+        var (start, end) = GetSelectionRange(input);
+        input.Text = string.Concat(text.AsSpan(0, start), insertedText, text.AsSpan(end));
+        var caret = start + insertedText.Length;
+        SetInputSelection(input, caret, caret);
+        UpdateEntryDisplay();
+    }
+
+    private (int Start, int End) GetSelection(TextBox input)
+    {
+        if (!ReferenceEquals(_activeInput, input))
+            CaptureSelection(input);
+        else if (!input.IsFocused)
+            RestoreInputSelection(input);
+        else
+            CaptureSelection(input);
+
+        return (_selectionStart, _selectionEnd);
+    }
+
+    private (int Start, int End) GetSelectionRange(TextBox input)
+    {
+        var (start, end) = GetSelection(input);
+        return (Math.Min(start, end), Math.Max(start, end));
+    }
+
+    private TextBox? GetActiveInputForEditing()
+    {
+        if (_activeInput is not null && IsInputActive(_activeInput))
+        {
+            var input = _activeInput;
+            input.Focus();
+            RestoreInputSelection(input);
+            return input;
+        }
+
+        FocusFirstActiveInput();
+        if (_activeInput is null || !IsInputActive(_activeInput))
+            return null;
+
+        var firstInput = _activeInput;
+        firstInput.Focus();
+        RestoreInputSelection(firstInput);
+        return firstInput;
+    }
+
+    private void UpdateEntryDisplay()
+    {
+        if (DisplayModeText is null || DisplayContextText is null || DisplayText is null)
+            return;
+
+        var input = _activeInput is not null && IsInputActive(_activeInput)
+            ? _activeInput
+            : IsMeanMode ? MeanInput : SuccessesInput;
+        DisplayModeText.Text = "ENTRADA";
+        DisplayContextText.Text = input switch
+        {
+            _ when ReferenceEquals(input, MeanInput) => "Média amostral (x̄)",
+            _ when ReferenceEquals(input, SampleSizeMeanInput) => "Tamanho da amostra (n)",
+            _ when ReferenceEquals(input, DeviationInput) => "Desvio padrão",
+            _ when ReferenceEquals(input, SuccessesInput) => "Ocorrências de interesse (k)",
+            _ when ReferenceEquals(input, SampleSizeProportionInput) => "Tamanho da amostra (n)",
+            _ => "Entrada numérica"
+        };
+        DisplayText.Text = string.IsNullOrEmpty(input.Text) ? "—" : input.Text;
+    }
+
+    private void UpdateKeypadCapabilities()
+    {
+        if (SignButton is null || DecimalButton is null)
+            return;
+
+        var decimalInputActive = _activeInput is not null && IsInputActive(_activeInput) && IsDecimalInput(_activeInput);
+        SignButton.IsEnabled = decimalInputActive;
+        DecimalButton.IsEnabled = decimalInputActive;
+    }
+
+    private bool IsInputActive(TextBox input) => IsMeanMode
+        ? ReferenceEquals(input, MeanInput) || ReferenceEquals(input, SampleSizeMeanInput) || ReferenceEquals(input, DeviationInput)
+        : ReferenceEquals(input, SuccessesInput) || ReferenceEquals(input, SampleSizeProportionInput);
+
+    private bool IsDecimalInput(TextBox input) =>
+        ReferenceEquals(input, MeanInput) || ReferenceEquals(input, DeviationInput);
+
+    private void FocusFirstActiveInput()
+    {
+        var firstInput = IsMeanMode ? MeanInput : SuccessesInput;
+        firstInput.Focus();
     }
 
     private void FormulaSelector_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -271,7 +532,11 @@ public partial class MainWindow : Window
             _isUpdatingControls = false;
         }
 
+        _activeInput = null;
+        _selectionStart = 0;
+        _selectionEnd = 0;
         InvalidateResult();
+        FocusFirstActiveInput();
     }
 
     private void Selection_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -282,26 +547,35 @@ public partial class MainWindow : Window
 
     private void Input_OnTextChanged(object? sender, TextChangedEventArgs e)
     {
-        if (!_isUpdatingControls)
-            InvalidateResult();
+        if (_isUpdatingControls)
+            return;
+
+        if (sender is TextBox input && ReferenceEquals(_activeInput, input))
+            CaptureSelection(input);
+        InvalidateResult();
     }
 
-    private void CalculateButton_OnClick(object? sender, RoutedEventArgs e) => Calculate();
+    private void CalculateButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        GetActiveInputForEditing();
+        Calculate();
+    }
 
     private void ClearButton_OnClick(object? sender, RoutedEventArgs e) => Clear();
+
+    private void BackspaceButton_OnClick(object? sender, RoutedEventArgs e) => Backspace();
+
+    private void ClearEntryButton_OnClick(object? sender, RoutedEventArgs e) => ClearActiveEntry();
+
+    private void SignButton_OnClick(object? sender, RoutedEventArgs e) => ToggleSign();
+
+    private void DecimalButton_OnClick(object? sender, RoutedEventArgs e) => InsertDecimalSeparator();
 
     private void UpdateInputVisibility()
     {
         MeanFieldsPanel.IsVisible = IsMeanMode;
         ProportionFieldsPanel.IsVisible = !IsMeanMode;
-    }
-
-    private void FocusFirstActiveInput()
-    {
-        if (IsMeanMode)
-            MeanInput.Focus();
-        else
-            SuccessesInput.Focus();
+        UpdateKeypadCapabilities();
     }
 
     private ConfidenceLevel GetConfidenceLevel() => ConfidenceSelector.SelectedIndex switch
@@ -376,7 +650,7 @@ public partial class MainWindow : Window
     private static string FormatPercent(double proportion) =>
         FormatPercentNumber(proportion * 100) + "%";
 
-    private static string FormatPercentNumber(double percentage) 
+    private static string FormatPercentNumber(double percentage)
     {
         var formatted = percentage.ToString("F2", BrazilianCulture);
         return percentage != 0 && (formatted is "0,00" or "-0,00")
