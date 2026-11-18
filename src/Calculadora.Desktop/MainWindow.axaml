@@ -138,6 +138,12 @@
           </ComboBox>
         </StackPanel>
       </Grid>
+      <StackPanel Spacing="2">
+        <TextBlock Text="Escolha a fórmula e a confiança. Copie só o número do enunciado, cole com Ctrl+V e use Tab para avançar."
+                   FontSize="12" Classes="muted" TextWrapping="Wrap" />
+        <TextBlock Text="Use vírgula ou ponto nos decimais. Cole um número por campo, sem unidade, símbolo de % ou separador de milhares."
+                   FontSize="12" Classes="muted" TextWrapping="Wrap" />
+      </StackPanel>
 
       <Grid x:Name="MeanFieldsPanel" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto"
             ColumnSpacing="10" RowSpacing="8">
@@ -146,7 +152,9 @@
             <TextBlock x:Name="MeanLabel" Text="Média amostral (x̄)" FontSize="12" FontWeight="SemiBold" Classes="muted"  TextWrapping="Wrap"/>
             <TextBox x:Name="MeanInput" AutomationProperties.Name="Média amostral (x̄)"
                      AutomationProperties.AutomationId="MeanInput" AutomationProperties.LabeledBy="{Binding ElementName=MeanLabel}"
+                     AutomationProperties.HelpText="Valor da média observada na amostra."
                      Text="" PlaceholderText="Ex.: 1,75" MinHeight="40" FontSize="17" TabIndex="2" />
+            <TextBlock Text="Valor da média observada na amostra." FontSize="12" Classes="muted" TextWrapping="Wrap" />
             <TextBlock x:Name="MeanError" IsVisible="False" Classes="field-error" TextWrapping="Wrap"
                        AutomationProperties.LiveSetting="Assertive" />
           </StackPanel>
@@ -156,7 +164,9 @@
             <TextBlock x:Name="SampleSizeMeanLabel" Text="Tamanho da amostra (n)" FontSize="12" FontWeight="SemiBold" Classes="muted"  TextWrapping="Wrap"/>
             <TextBox x:Name="SampleSizeMeanInput" AutomationProperties.Name="Tamanho da amostra (n)"
                      AutomationProperties.AutomationId="SampleSizeMeanInput" AutomationProperties.LabeledBy="{Binding ElementName=SampleSizeMeanLabel}"
+                     AutomationProperties.HelpText="Total de observações, em número inteiro."
                      Text="" PlaceholderText="Ex.: 40" MinHeight="40" FontSize="17" TabIndex="3" />
+            <TextBlock Text="Total de observações, em número inteiro." FontSize="12" Classes="muted" TextWrapping="Wrap" />
             <TextBlock x:Name="SampleSizeMeanError" IsVisible="False" Classes="field-error" TextWrapping="Wrap"
                        AutomationProperties.LiveSetting="Assertive" />
           </StackPanel>
@@ -178,7 +188,9 @@
             <TextBlock x:Name="DeviationLabel" Text="Desvio padrão" FontSize="12" FontWeight="SemiBold" Classes="muted"  TextWrapping="Wrap"/>
             <TextBox x:Name="DeviationInput" AutomationProperties.Name="Desvio padrão"
                      AutomationProperties.AutomationId="DeviationInput" AutomationProperties.LabeledBy="{Binding ElementName=DeviationLabel}"
+                     AutomationProperties.HelpText="Valor do desvio padrão, não da variância."
                      Text="" PlaceholderText="Ex.: 0,13" MinHeight="40" FontSize="17" TabIndex="5" />
+            <TextBlock Text="Valor do desvio padrão, não da variância." FontSize="12" Classes="muted" TextWrapping="Wrap" />
             <TextBlock x:Name="DeviationError" IsVisible="False" Classes="field-error" TextWrapping="Wrap"
                        AutomationProperties.LiveSetting="Assertive" />
           </StackPanel>
@@ -191,8 +203,9 @@
             <TextBlock x:Name="SuccessesLabel" Text="Ocorrências de interesse (k)" FontSize="12" FontWeight="SemiBold" Classes="muted"  TextWrapping="Wrap"/>
             <TextBox x:Name="SuccessesInput" AutomationProperties.Name="Ocorrências de interesse (k)"
                      AutomationProperties.AutomationId="SuccessesInput" AutomationProperties.LabeledBy="{Binding ElementName=SuccessesLabel}"
+                     AutomationProperties.HelpText="Quantidade com a característica pedida (ex.: 35 etiquetas defeituosas), não a porcentagem."
                      Text="" PlaceholderText="Ex.: 35" MinHeight="40" FontSize="17" TabIndex="2" />
-            <TextBlock Text="Conte o evento que você quer estimar, por exemplo, etiquetas defeituosas."
+            <TextBlock Text="Quantidade com a característica pedida (ex.: 35 etiquetas defeituosas), não a porcentagem."
                        TextWrapping="Wrap" FontSize="12" Classes="muted" />
             <TextBlock x:Name="SuccessesError" IsVisible="False" Classes="field-error" TextWrapping="Wrap"
                        AutomationProperties.LiveSetting="Assertive" />
@@ -203,7 +216,9 @@
             <TextBlock x:Name="SampleSizeProportionLabel" Text="Tamanho da amostra (n)" FontSize="12" FontWeight="SemiBold" Classes="muted"  TextWrapping="Wrap"/>
             <TextBox x:Name="SampleSizeProportionInput" AutomationProperties.Name="Tamanho da amostra (n)"
                      AutomationProperties.AutomationId="SampleSizeProportionInput" AutomationProperties.LabeledBy="{Binding ElementName=SampleSizeProportionLabel}"
+                     AutomationProperties.HelpText="Total de observações, em número inteiro."
                      Text="" PlaceholderText="Ex.: 500" MinHeight="40" FontSize="17" TabIndex="3" />
+            <TextBlock Text="Total de observações, em número inteiro." FontSize="12" Classes="muted" TextWrapping="Wrap" />
             <TextBlock x:Name="SampleSizeProportionError" IsVisible="False" Classes="field-error" TextWrapping="Wrap"
                        AutomationProperties.LiveSetting="Assertive" />
           </StackPanel>
