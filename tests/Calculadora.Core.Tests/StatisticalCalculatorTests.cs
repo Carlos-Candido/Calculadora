@@ -91,6 +91,176 @@ public sealed class StatisticalCalculatorTests
         Assert.Equal("successes", Assert.Throws<ArgumentOutOfRangeException>(() => StatisticalCalculator.CalculateProportion(11, 10, ConfidenceLevel.Percent95)).ParamName);
     }
 
+    [Theory]
+    [InlineData(ConfidenceLevel.Percent90, 1.645, 423.0, 422.81640625)]
+    [InlineData(ConfidenceLevel.Percent95, 1.96, 601.0, 600.25)]
+    [InlineData(ConfidenceLevel.Percent99, 2.575, 1037.0, 1036.03515625)]
+    public void CalculateMeanSampleSize_UsesConfiguredCriticalValueAndRoundsUp(
+        ConfidenceLevel confidence, double expectedZ, double expectedMinimum, double expectedRaw)
+    {
+        var result = StatisticalCalculator.CalculateMeanSampleSize(1250, 100, confidence);
+
+        AssertClose(expectedZ, result.Z);
+        AssertClose(expectedRaw, result.RawSampleSize);
+        Assert.Equal((int)expectedMinimum, result.MinimumSampleSize);
+    }
+
+    [Theory]
+    [InlineData(0.30, 0.02, 2017, 2016.84)]
+    [InlineData(0.15, 0.03, 545, 544.2266666666667)]
+    [InlineData(0.50, 0.03, 1068, 1067.111111111111)]
+    [InlineData(0.50, 0.02, 2401, 2401)]
+    public void CalculateProportionSampleSize_ComputesPlanningExamples(
+        double proportion, double marginOfError, int expectedMinimum, double expectedRaw)
+    {
+        var result = StatisticalCalculator.CalculateProportionSampleSize(
+            proportion, marginOfError, ConfidenceLevel.Percent95);
+
+        AssertClose(expectedRaw, result.RawSampleSize);
+        Assert.Equal(expectedMinimum, result.MinimumSampleSize);
+    }
+
+    [Fact]
+    public void CalculateMeanSampleSize_ZeroDeviationHasMinimumOfOne()
+    {
+        var result = StatisticalCalculator.CalculateMeanSampleSize(0, 100, ConfidenceLevel.Percent95);
+
+        AssertClose(0, result.RawSampleSize);
+        Assert.Equal(1, result.MinimumSampleSize);
+    }
+
+    [Fact]
+    public void CalculateMeanSampleSize_DividesBeforeMultiplyingLargeFiniteInputs()
+    {
+        var result = StatisticalCalculator.CalculateMeanSampleSize(1e308, 1e308, ConfidenceLevel.Percent95);
+
+        AssertClose(1.96, result.Z);
+        AssertClose(1.96 * 1.96, result.RawSampleSize);
+        Assert.Equal(4, result.MinimumSampleSize);
+    }
+
+    [Theory]
+    [InlineData(0.9999999999999999, 1)]
+    [InlineData(1, 1)]
+    [InlineData(1.0000000000000002, 2)]
+    public void CalculateMeanSampleSize_CeilingUsesUnroundedDoubleBoundary(double standardDeviation, int expectedMinimum)
+    {
+        var result = StatisticalCalculator.CalculateMeanSampleSize(
+            standardDeviation, 1.96, ConfidenceLevel.Percent95);
+
+        Assert.Equal(expectedMinimum, result.MinimumSampleSize);
+    }
+
+    [Fact]
+    public void CalculateMeanSampleSize_RejectsMinimumAboveIntMaximum()
+    {
+        Assert.Throws<ArithmeticException>(() =>
+            StatisticalCalculator.CalculateMeanSampleSize(24000, 1, ConfidenceLevel.Percent95));
+    }
+
+    [Fact]
+    public void CalculateMeanSampleSize_AcceptsLargestRepresentableMinimumSampleSize()
+    {
+        var result = StatisticalCalculator.CalculateMeanSampleSize(23400, 1, ConfidenceLevel.Percent95);
+
+        AssertClose(2103506496, result.RawSampleSize);
+        Assert.Equal(2103506496, result.MinimumSampleSize);
+    }
+
+    [Fact]
+    public void CalculateMeanSampleSize_RejectsNonFiniteRawSampleSize()
+    {
+        Assert.Throws<ArithmeticException>(() =>
+            StatisticalCalculator.CalculateMeanSampleSize(1, double.Epsilon, ConfidenceLevel.Percent95));
+    }
+
+    [Fact]
+    public void CalculateProportionSampleSize_UsesOneAsMinimumWhenRawSizeIsBelowOne()
+    {
+        var result = StatisticalCalculator.CalculateProportionSampleSize(0.5, 1, ConfidenceLevel.Percent95);
+
+        AssertClose(0.9604, result.RawSampleSize);
+        Assert.Equal(1, result.MinimumSampleSize);
+    }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    [InlineData(-1)]
+    public void CalculateMeanSampleSize_RejectsInvalidStandardDeviation(double standardDeviation)
+    {
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            StatisticalCalculator.CalculateMeanSampleSize(standardDeviation, 1, ConfidenceLevel.Percent95));
+
+        Assert.Equal("standardDeviation", exception.ParamName);
+        Assert.Equal("O desvio padrão deve ser finito e não negativo.", exception.Message.Split(" (")[0]);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void CalculateMeanSampleSize_RejectsInvalidMarginOfError(double marginOfError)
+    {
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            StatisticalCalculator.CalculateMeanSampleSize(1, marginOfError, ConfidenceLevel.Percent95));
+
+        Assert.Equal("marginOfError", exception.ParamName);
+        Assert.Equal("A margem de erro deve ser finita e maior que zero.", exception.Message.Split(" (")[0]);
+    }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    [InlineData(-0.1)]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(1.1)]
+    public void CalculateProportionSampleSize_RejectsInvalidProportion(double proportion)
+    {
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            StatisticalCalculator.CalculateProportionSampleSize(proportion, 0.1, ConfidenceLevel.Percent95));
+
+        Assert.Equal("proportion", exception.ParamName);
+        Assert.Equal(
+            "A proporção esperada deve estar entre 0% e 100%, sem incluir os extremos.",
+            exception.Message.Split(" (")[0]);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-0.1)]
+    [InlineData(1.0000000000000002)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void CalculateProportionSampleSize_RejectsInvalidMarginOfError(double marginOfError)
+    {
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            StatisticalCalculator.CalculateProportionSampleSize(0.5, marginOfError, ConfidenceLevel.Percent95));
+
+        Assert.Equal("marginOfError", exception.ParamName);
+        Assert.Equal(
+            "A margem de erro deve ser maior que 0 e no máximo 100 pontos percentuais.",
+            exception.Message.Split(" (")[0]);
+    }
+
+    [Fact]
+    public void SampleSizeCalculations_RejectInvalidConfidence()
+    {
+        var meanException = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            StatisticalCalculator.CalculateMeanSampleSize(1, 1, (ConfidenceLevel)80));
+        var proportionException = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            StatisticalCalculator.CalculateProportionSampleSize(0.5, 0.1, (ConfidenceLevel)80));
+
+        Assert.Equal("confidence", meanException.ParamName);
+        Assert.Equal("confidence", proportionException.ParamName);
+    }
+
     private static void AssertClose(double expected, double actual)
     {
         Assert.True(double.IsFinite(actual) && Math.Abs(expected - actual) <= 1e-10,

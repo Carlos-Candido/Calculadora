@@ -101,7 +101,7 @@
     <StackPanel Margin="16" Spacing="10">
       <StackPanel Spacing="2">
         <TextBlock Text="CALCULADORA ESTATÍSTICA" FontSize="11" FontWeight="Bold" LetterSpacing="1.2" Classes="muted" />
-        <TextBlock Text="Intervalos de confiança" FontSize="21" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock Text="Intervalos e tamanho amostral" FontSize="21" FontWeight="SemiBold" TextWrapping="Wrap" />
       </StackPanel>
 
       <Border x:Name="ResultPanel" Classes="surface" Padding="14" BorderThickness="1" CornerRadius="12"
@@ -116,21 +116,23 @@
                      TextAlignment="Right" TextWrapping="Wrap" AutomationProperties.AutomationId="DisplayContextText" />
           <TextBlock x:Name="DisplayText" Text="—" FontSize="30" FontWeight="SemiBold" FontFamily="monospace"
                      TextAlignment="Right" TextWrapping="Wrap" MinHeight="42" VerticalAlignment="Center"
-                     AutomationProperties.Name="Visor da entrada ou do intervalo calculado" AutomationProperties.AutomationId="DisplayText"
+                     AutomationProperties.Name="Visor da entrada ou do resultado" AutomationProperties.AutomationId="DisplayText"
                      AutomationProperties.LiveSetting="Polite" />
         </StackPanel>
       </Border>
 
-      <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-        <StackPanel Grid.Column="0" Spacing="4">
+      <Grid ColumnDefinitions="*" RowDefinitions="Auto,Auto" RowSpacing="8">
+        <StackPanel Grid.Row="0" Spacing="4">
           <TextBlock Text="Fórmula" FontSize="12" FontWeight="SemiBold" Classes="muted" />
-          <ComboBox x:Name="FormulaSelector" AutomationProperties.Name="Fórmula do intervalo de confiança"
+          <ComboBox x:Name="FormulaSelector" AutomationProperties.Name="Fórmula estatística"
                     AutomationProperties.AutomationId="FormulaSelector" SelectedIndex="0" MinHeight="42" HorizontalAlignment="Stretch" TabIndex="0">
             <ComboBoxItem Content="Média" />
             <ComboBoxItem Content="Proporção" />
+            <ComboBoxItem Content="Tamanho amostral — média" />
+            <ComboBoxItem Content="Tamanho amostral — proporção" />
           </ComboBox>
         </StackPanel>
-        <StackPanel Grid.Column="1" Spacing="4">
+        <StackPanel Grid.Row="1" Spacing="4">
           <TextBlock Text="Confiança" FontSize="12" FontWeight="SemiBold" Classes="muted" />
           <ComboBox x:Name="ConfidenceSelector" AutomationProperties.Name="Nível de confiança"
                     AutomationProperties.AutomationId="ConfidenceSelector" SelectedIndex="1" MinHeight="42" HorizontalAlignment="Stretch" TabIndex="1">
@@ -224,6 +226,59 @@
           </StackPanel>
         </Border>
       </Grid>
+      <Grid x:Name="MeanSampleSizeFieldsPanel" IsVisible="False" ColumnDefinitions="*,*" ColumnSpacing="10">
+        <Border Grid.Column="0" Classes="surface" Padding="8" BorderThickness="1" CornerRadius="9">
+          <StackPanel Spacing="4">
+            <TextBlock x:Name="PlanningDeviationLabel" Text="Desvio padrão populacional (σ)" FontSize="12" FontWeight="SemiBold" Classes="muted" TextWrapping="Wrap" />
+            <TextBox x:Name="PlanningDeviationInput" AutomationProperties.Name="Desvio padrão populacional (σ)"
+                     AutomationProperties.AutomationId="PlanningDeviationInput" AutomationProperties.LabeledBy="{Binding ElementName=PlanningDeviationLabel}"
+                     AutomationProperties.HelpText="Informe o desvio padrão populacional, não a variância."
+                     Text="" PlaceholderText="Ex.: 1250" MinHeight="40" FontSize="17" TabIndex="2" />
+            <TextBlock Text="Informe o desvio padrão populacional, não a variância." FontSize="12" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock x:Name="PlanningDeviationError" IsVisible="False" Classes="field-error" TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="1" Classes="surface" Padding="8" BorderThickness="1" CornerRadius="9">
+          <StackPanel Spacing="4">
+            <TextBlock x:Name="MeanMarginLabel" Text="Margem de erro máxima (E)" FontSize="12" FontWeight="SemiBold" Classes="muted" TextWrapping="Wrap" />
+            <TextBox x:Name="MeanMarginInput" AutomationProperties.Name="Margem de erro máxima (E)"
+                     AutomationProperties.AutomationId="MeanMarginInput" AutomationProperties.LabeledBy="{Binding ElementName=MeanMarginLabel}"
+                     AutomationProperties.HelpText="Use a mesma unidade do desvio padrão."
+                     Text="" PlaceholderText="Ex.: 100" MinHeight="40" FontSize="17" TabIndex="3" />
+            <TextBlock Text="Use a mesma unidade do desvio padrão." FontSize="12" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock x:Name="MeanMarginError" IsVisible="False" Classes="field-error" TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive" />
+          </StackPanel>
+        </Border>
+      </Grid>
+
+      <Grid x:Name="ProportionSampleSizeFieldsPanel" IsVisible="False" ColumnDefinitions="*,*" ColumnSpacing="10">
+        <Border Grid.Column="0" Classes="surface" Padding="8" BorderThickness="1" CornerRadius="9">
+          <StackPanel Spacing="4">
+            <TextBlock x:Name="ExpectedProportionLabel" Text="Proporção esperada (%)" FontSize="12" FontWeight="SemiBold" Classes="muted" TextWrapping="Wrap" />
+            <TextBox x:Name="ExpectedProportionInput" AutomationProperties.Name="Proporção esperada (%)"
+                     AutomationProperties.AutomationId="ExpectedProportionInput" AutomationProperties.LabeledBy="{Binding ElementName=ExpectedProportionLabel}"
+                     AutomationProperties.HelpText="Digite 30 para 30%. Em branco, o cálculo usa 50%."
+                     Text="" PlaceholderText="Ex.: 30" MinHeight="40" FontSize="17" TabIndex="2" />
+            <TextBlock Text="Digite 30 para 30%. Em branco, o cálculo usa 50%." FontSize="12" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock x:Name="ExpectedProportionError" IsVisible="False" Classes="field-error" TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="1" Classes="surface" Padding="8" BorderThickness="1" CornerRadius="9">
+          <StackPanel Spacing="4">
+            <TextBlock x:Name="ProportionMarginLabel" Text="Margem de erro (p.p.)" FontSize="12" FontWeight="SemiBold" Classes="muted" TextWrapping="Wrap" />
+            <TextBox x:Name="ProportionMarginInput" AutomationProperties.Name="Margem de erro (p.p.)"
+                     AutomationProperties.AutomationId="ProportionMarginInput" AutomationProperties.LabeledBy="{Binding ElementName=ProportionMarginLabel}"
+                     AutomationProperties.HelpText="Digite 2 para 2 pontos percentuais, sem o símbolo de %."
+                     Text="" PlaceholderText="Ex.: 2" MinHeight="40" FontSize="17" TabIndex="3" />
+            <TextBlock Text="Digite 2 para 2 pontos percentuais, sem o símbolo de %." FontSize="12" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock x:Name="ProportionMarginError" IsVisible="False" Classes="field-error" TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive" />
+          </StackPanel>
+        </Border>
+      </Grid>
 
       <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8"
             AutomationProperties.Name="Teclado numérico" AutomationProperties.AutomationId="Keypad">
@@ -261,7 +316,7 @@
         <Button x:Name="DecimalButton" Grid.Row="3" Grid.Column="2" Classes="key utility" Content="," TabIndex="20"
                 AutomationProperties.Name="Inserir separador decimal no campo decimal ativo" AutomationProperties.AutomationId="DecimalButton" />
         <Button x:Name="CalculateButton" Grid.Row="3" Grid.Column="3" Classes="key primary" Content="=" IsDefault="True" TabIndex="21"
-                AutomationProperties.Name="Calcular intervalo de confiança" AutomationProperties.AutomationId="CalculateButton" />
+                AutomationProperties.Name="Calcular resultado" AutomationProperties.AutomationId="CalculateButton" />
       </Grid>
 
       <TextBlock x:Name="ErrorSummary" IsVisible="False" TextWrapping="Wrap" Foreground="{DynamicResource CalcErrorBrush}"
@@ -281,7 +336,7 @@
           </Border>
           <SelectableTextBlock x:Name="IntervalText" TextWrapping="Wrap" FontSize="17" FontWeight="SemiBold"
                                Focusable="True" IsTabStop="True" TabIndex="22"
-                               AutomationProperties.Name="Interpretação e intervalo de confiança"
+                               AutomationProperties.Name="Interpretação do resultado"
                                AutomationProperties.AutomationId="IntervalText" AutomationProperties.LiveSetting="Polite" />
           <SelectableTextBlock x:Name="ResultDetails" TextWrapping="Wrap" Focusable="True" IsTabStop="True" TabIndex="23"
                                AutomationProperties.Name="Valores do resultado" AutomationProperties.AutomationId="ResultDetails" />

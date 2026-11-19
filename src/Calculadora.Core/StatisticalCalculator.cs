@@ -24,6 +24,8 @@ public sealed record IntervalResult(
     bool NormalApproximationWarning,
     bool OutsideProportionRange);
 
+public readonly record struct SampleSizeResult(double Z, double RawSampleSize, int MinimumSampleSize);
+
 public static class StatisticalCalculator
 {
     public static IntervalResult CalculateMean(
@@ -73,6 +75,44 @@ public static class StatisticalCalculator
         EnsureFinite(upper);
         return new IntervalResult(estimate, alpha, z, standardError, margin, lower, upper,
             successes < 5 || sampleSize - successes < 5, lower < 0 || upper > 1);
+    }
+
+    public static SampleSizeResult CalculateMeanSampleSize(
+        double standardDeviation, double marginOfError, ConfidenceLevel confidence)
+    {
+        ValidateConfidence(confidence);
+        if (!double.IsFinite(standardDeviation) || standardDeviation < 0)
+            throw new ArgumentOutOfRangeException(nameof(standardDeviation), "O desvio padrão deve ser finito e não negativo.");
+        if (!double.IsFinite(marginOfError) || marginOfError <= 0)
+            throw new ArgumentOutOfRangeException(nameof(marginOfError), "A margem de erro deve ser finita e maior que zero.");
+
+        var (z, _) = GetCriticalValues(confidence);
+        var ratio = (standardDeviation / marginOfError) * z;
+        return CreateSampleSizeResult(z, ratio * ratio);
+    }
+
+    public static SampleSizeResult CalculateProportionSampleSize(
+        double proportion, double marginOfError, ConfidenceLevel confidence)
+    {
+        ValidateConfidence(confidence);
+        if (!double.IsFinite(proportion) || proportion <= 0 || proportion >= 1)
+            throw new ArgumentOutOfRangeException(nameof(proportion), "A proporção esperada deve estar entre 0% e 100%, sem incluir os extremos.");
+        if (!double.IsFinite(marginOfError) || marginOfError <= 0 || marginOfError > 1)
+            throw new ArgumentOutOfRangeException(nameof(marginOfError), "A margem de erro deve ser maior que 0 e no máximo 100 pontos percentuais.");
+
+        var (z, _) = GetCriticalValues(confidence);
+        var ratio = z * Math.Sqrt(proportion * (1 - proportion)) / marginOfError;
+        return CreateSampleSizeResult(z, ratio * ratio);
+    }
+
+    private static SampleSizeResult CreateSampleSizeResult(double z, double rawSampleSize)
+    {
+        EnsureFinite(rawSampleSize);
+        var roundedSampleSize = Math.Ceiling(rawSampleSize);
+        if (roundedSampleSize > int.MaxValue)
+            throw new ArithmeticException("O tamanho mínimo da amostra excede 2.147.483.647 observações.");
+
+        return new SampleSizeResult(z, rawSampleSize, Math.Max(1, (int)roundedSampleSize));
     }
 
     private static void ValidateSampleSize(int sampleSize)

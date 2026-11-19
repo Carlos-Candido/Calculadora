@@ -27,6 +27,10 @@ public partial class MainWindow : Window
         RegisterNumericInput(DeviationInput);
         RegisterNumericInput(SuccessesInput);
         RegisterNumericInput(SampleSizeProportionInput);
+        RegisterNumericInput(PlanningDeviationInput);
+        RegisterNumericInput(MeanMarginInput);
+        RegisterNumericInput(ExpectedProportionInput);
+        RegisterNumericInput(ProportionMarginInput);
         CalculateButton.Click += CalculateButton_OnClick;
         ClearButton.Click += ClearButton_OnClick;
         BackspaceButton.Click += BackspaceButton_OnClick;
@@ -50,13 +54,26 @@ public partial class MainWindow : Window
         _isUpdatingControls = false;
     }
 
-    private bool IsMeanMode => FormulaSelector.SelectedIndex == 0;
+    private CalculationMode Mode => FormulaSelector.SelectedIndex switch
+    {
+        0 => CalculationMode.MeanInterval,
+        1 => CalculationMode.ProportionInterval,
+        2 => CalculationMode.MeanSampleSize,
+        3 => CalculationMode.ProportionSampleSize,
+        _ => CalculationMode.MeanInterval
+    };
 
     private void Calculate()
     {
         InvalidateResult();
+        var mode = Mode;
+        if (mode is CalculationMode.MeanSampleSize or CalculationMode.ProportionSampleSize)
+        {
+            CalculateSampleSize(mode);
+            return;
+        }
 
-        var isMean = IsMeanMode;
+        var isMean = mode == CalculationMode.MeanInterval;
         var isValid = true;
         Control? firstInvalidControl = null;
         var mean = 0d;
@@ -147,17 +164,108 @@ public partial class MainWindow : Window
             ErrorSummary.IsVisible = true;
         }
     }
+    private void CalculateSampleSize(CalculationMode mode)
+    {
+        var isMean = mode == CalculationMode.MeanSampleSize;
+        var isProportion = mode == CalculationMode.ProportionSampleSize;
+        var isValid = true;
+        Control? firstInvalidControl = null;
+        var standardDeviation = 0d;
+        var proportion = 0.5d;
+        var marginOfError = 0d;
+        var assumedProportion = isProportion && string.IsNullOrWhiteSpace(ExpectedProportionInput.Text);
+        const string decimalInputError = "Informe um número válido, usando vírgula ou ponto decimal, sem separador de milhares.";
+
+        if (isMean)
+        {
+            if (!NumericInput.TryParseDecimal(PlanningDeviationInput.Text, out standardDeviation))
+            {
+                SetInputError(PlanningDeviationError, PlanningDeviationInput, decimalInputError, ref firstInvalidControl);
+                isValid = false;
+            }
+
+            if (!NumericInput.TryParseDecimal(MeanMarginInput.Text, out marginOfError))
+            {
+                SetInputError(MeanMarginError, MeanMarginInput, decimalInputError, ref firstInvalidControl);
+                isValid = false;
+            }
+        }
+        else
+        {
+            if (!assumedProportion)
+            {
+                if (!NumericInput.TryParseDecimal(ExpectedProportionInput.Text, out var enteredProportion))
+                {
+                    SetInputError(ExpectedProportionError, ExpectedProportionInput, decimalInputError, ref firstInvalidControl);
+                    isValid = false;
+                }
+                else
+                {
+                    proportion = enteredProportion / 100d;
+                }
+            }
+
+            if (!NumericInput.TryParseDecimal(ProportionMarginInput.Text, out var enteredMargin))
+            {
+                SetInputError(ProportionMarginError, ProportionMarginInput, decimalInputError, ref firstInvalidControl);
+                isValid = false;
+            }
+            else
+            {
+                marginOfError = enteredMargin / 100d;
+            }
+        }
+
+        if (!isValid)
+        {
+            ErrorSummary.Text = "Corrija os campos indicados antes de calcular.";
+            ErrorSummary.IsVisible = true;
+            firstInvalidControl?.Focus();
+            return;
+        }
+
+        var confidence = GetConfidenceLevel();
+        try
+        {
+            var result = isMean
+                ? StatisticalCalculator.CalculateMeanSampleSize(standardDeviation, marginOfError, confidence)
+                : StatisticalCalculator.CalculateProportionSampleSize(proportion, marginOfError, confidence);
+            RenderSampleSizeResult(
+                result, mode, confidence, isMean ? standardDeviation : proportion, marginOfError, assumedProportion);
+        }
+        catch (ArgumentException exception)
+        {
+            var target = exception.ParamName switch
+            {
+                "standardDeviation" => (Control: (Control)PlanningDeviationInput, Error: PlanningDeviationError),
+                "marginOfError" when isMean => (Control: (Control)MeanMarginInput, Error: MeanMarginError),
+                "marginOfError" => (Control: (Control)ProportionMarginInput, Error: ProportionMarginError),
+                "proportion" => (Control: (Control)ExpectedProportionInput, Error: ExpectedProportionError),
+                _ => (Control: (Control?)null, Error: (TextBlock?)null)
+            };
+            if (target.Control is not null && target.Error is not null)
+            {
+                target.Error.Text = exception.Message;
+                target.Error.IsVisible = true;
+                target.Control.Focus();
+            }
+
+            ErrorSummary.Text = exception.Message;
+            ErrorSummary.IsVisible = true;
+        }
+        catch (ArithmeticException exception)
+        {
+            ErrorSummary.Text = exception.Message;
+            ErrorSummary.IsVisible = true;
+        }
+    }
 
     private void Clear()
     {
         _isUpdatingControls = true;
         try
         {
-            MeanInput.Text = string.Empty;
-            SampleSizeMeanInput.Text = string.Empty;
-            DeviationInput.Text = string.Empty;
-            SuccessesInput.Text = string.Empty;
-            SampleSizeProportionInput.Text = string.Empty;
+            ClearNumericInputs();
             ConfidenceSelector.SelectedIndex = 1;
             DeviationKindSelector.SelectedIndex = 0;
             UpdateInputVisibility();
@@ -172,6 +280,18 @@ public partial class MainWindow : Window
         _selectionEnd = 0;
         InvalidateResult();
         FocusFirstActiveInput();
+    }
+    private void ClearNumericInputs()
+    {
+        MeanInput.Text = string.Empty;
+        SampleSizeMeanInput.Text = string.Empty;
+        DeviationInput.Text = string.Empty;
+        SuccessesInput.Text = string.Empty;
+        SampleSizeProportionInput.Text = string.Empty;
+        PlanningDeviationInput.Text = string.Empty;
+        MeanMarginInput.Text = string.Empty;
+        ExpectedProportionInput.Text = string.Empty;
+        ProportionMarginInput.Text = string.Empty;
     }
 
     private void InvalidateResult()
@@ -192,6 +312,10 @@ public partial class MainWindow : Window
         ClearFieldError(DeviationError);
         ClearFieldError(SuccessesError);
         ClearFieldError(SampleSizeProportionError);
+        ClearFieldError(PlanningDeviationError);
+        ClearFieldError(MeanMarginError);
+        ClearFieldError(ExpectedProportionError);
+        ClearFieldError(ProportionMarginError);
         ErrorSummary.Text = string.Empty;
         ErrorSummary.IsVisible = false;
         UpdateEntryDisplay();
@@ -274,6 +398,47 @@ public partial class MainWindow : Window
             warnings.Add("A fórmula normal produziu limites fora de 0% a 100%; interprete com cautela.");
         WarningText.Text = string.Join(Environment.NewLine, warnings);
         WarningPanel.IsVisible = warnings.Count > 0;
+        DetailsPanel.IsVisible = true;
+        ResultPanel.IsVisible = true;
+    }
+    private void RenderSampleSizeResult(
+        SampleSizeResult result,
+        CalculationMode mode,
+        ConfidenceLevel confidence,
+        double parameter,
+        double marginOfError,
+        bool assumedProportion)
+    {
+        var confidencePercent = (int)confidence;
+        var z = result.Z.ToString("G", BrazilianCulture);
+        var parameterValue = parameter.ToString("G", BrazilianCulture);
+        var marginValue = marginOfError.ToString("G", BrazilianCulture);
+        var rawSampleSize = result.RawSampleSize.ToString("G", BrazilianCulture);
+        var minimumSampleSize = result.MinimumSampleSize.ToString("N0", BrazilianCulture);
+        var isMean = mode == CalculationMode.MeanSampleSize;
+
+        DisplayModeText.Text = $"TAMANHO AMOSTRAL · {confidencePercent}%";
+        DisplayContextText.Text = isMean ? "Média populacional" : "Proporção populacional";
+        DisplayText.Text = minimumSampleSize;
+        IntervalText.Text = $"Tamanho mínimo da amostra: {minimumSampleSize} observações.";
+
+        ResultDetails.Text = isMean
+            ? $"Z: {z}\nDesvio padrão populacional (σ): {parameterValue}\nMargem de erro máxima (E): {marginValue}"
+            : $"Z: {z}\nProporção esperada (p): {(parameter * 100d).ToString("G", BrazilianCulture)}%\nMargem de erro: {(marginOfError * 100d).ToString("G", BrazilianCulture)} pontos percentuais";
+
+        StepsText.Text = isMean
+            ? $"Fórmula: n = (Z × σ / E)²\n" +
+              $"Substituição: n = ({z} × {parameterValue} / {marginValue})² = {rawSampleSize}\n" +
+              $"n mínimo = máx(1; arredondar para cima(n bruto)) = {minimumSampleSize}"
+            : $"Fórmula: n = Z² × p × (1−p) / E²\n" +
+              $"Substituição: n = {z}² × {parameterValue} × (1−{parameterValue}) / {marginValue}² = {rawSampleSize}\n" +
+              $"n mínimo = máx(1; arredondar para cima(n bruto)) = {minimumSampleSize}";
+
+        WarningText.Text = assumedProportion
+            ? "Proporção esperada não informada; usado 50% (estimativa conservadora)."
+            : string.Empty;
+        WarningPanel.IsVisible = assumedProportion;
+        SourceNote.Text = "Fonte: Tamanho da Amostra — AMS, páginas 3–7 e 9.";
         DetailsPanel.IsVisible = true;
         ResultPanel.IsVisible = true;
     }
@@ -474,7 +639,7 @@ public partial class MainWindow : Window
 
         var input = _activeInput is not null && IsInputActive(_activeInput)
             ? _activeInput
-            : IsMeanMode ? MeanInput : SuccessesInput;
+            : GetFirstActiveInput();
         DisplayModeText.Text = "ENTRADA";
         DisplayContextText.Text = input switch
         {
@@ -483,6 +648,10 @@ public partial class MainWindow : Window
             _ when ReferenceEquals(input, DeviationInput) => "Desvio padrão",
             _ when ReferenceEquals(input, SuccessesInput) => "Ocorrências de interesse (k)",
             _ when ReferenceEquals(input, SampleSizeProportionInput) => "Tamanho da amostra (n)",
+            _ when ReferenceEquals(input, PlanningDeviationInput) => "Desvio padrão populacional (σ)",
+            _ when ReferenceEquals(input, MeanMarginInput) => "Margem de erro máxima (E)",
+            _ when ReferenceEquals(input, ExpectedProportionInput) => "Proporção esperada (%)",
+            _ when ReferenceEquals(input, ProportionMarginInput) => "Margem de erro (p.p.)",
             _ => "Entrada numérica"
         };
         DisplayText.Text = string.IsNullOrEmpty(input.Text) ? "—" : input.Text;
@@ -498,18 +667,34 @@ public partial class MainWindow : Window
         DecimalButton.IsEnabled = decimalInputActive;
     }
 
-    private bool IsInputActive(TextBox input) => IsMeanMode
-        ? ReferenceEquals(input, MeanInput) || ReferenceEquals(input, SampleSizeMeanInput) || ReferenceEquals(input, DeviationInput)
-        : ReferenceEquals(input, SuccessesInput) || ReferenceEquals(input, SampleSizeProportionInput);
+    private bool IsInputActive(TextBox input) => Mode switch
+    {
+        CalculationMode.MeanInterval =>
+            ReferenceEquals(input, MeanInput) || ReferenceEquals(input, SampleSizeMeanInput) || ReferenceEquals(input, DeviationInput),
+        CalculationMode.ProportionInterval =>
+            ReferenceEquals(input, SuccessesInput) || ReferenceEquals(input, SampleSizeProportionInput),
+        CalculationMode.MeanSampleSize =>
+            ReferenceEquals(input, PlanningDeviationInput) || ReferenceEquals(input, MeanMarginInput),
+        CalculationMode.ProportionSampleSize =>
+            ReferenceEquals(input, ExpectedProportionInput) || ReferenceEquals(input, ProportionMarginInput),
+        _ => false
+    };
 
     private bool IsDecimalInput(TextBox input) =>
-        ReferenceEquals(input, MeanInput) || ReferenceEquals(input, DeviationInput);
+        ReferenceEquals(input, MeanInput) || ReferenceEquals(input, DeviationInput) ||
+        ReferenceEquals(input, PlanningDeviationInput) || ReferenceEquals(input, MeanMarginInput) ||
+        ReferenceEquals(input, ExpectedProportionInput) || ReferenceEquals(input, ProportionMarginInput);
 
-    private void FocusFirstActiveInput()
+    private TextBox GetFirstActiveInput() => Mode switch
     {
-        var firstInput = IsMeanMode ? MeanInput : SuccessesInput;
-        firstInput.Focus();
-    }
+        CalculationMode.MeanInterval => MeanInput,
+        CalculationMode.ProportionInterval => SuccessesInput,
+        CalculationMode.MeanSampleSize => PlanningDeviationInput,
+        CalculationMode.ProportionSampleSize => ExpectedProportionInput,
+        _ => MeanInput
+    };
+
+    private void FocusFirstActiveInput() => GetFirstActiveInput().Focus();
 
     private void FormulaSelector_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
@@ -519,11 +704,7 @@ public partial class MainWindow : Window
         _isUpdatingControls = true;
         try
         {
-            MeanInput.Text = string.Empty;
-            SampleSizeMeanInput.Text = string.Empty;
-            DeviationInput.Text = string.Empty;
-            SuccessesInput.Text = string.Empty;
-            SampleSizeProportionInput.Text = string.Empty;
+            ClearNumericInputs();
             DeviationKindSelector.SelectedIndex = 0;
             UpdateInputVisibility();
         }
@@ -573,8 +754,10 @@ public partial class MainWindow : Window
 
     private void UpdateInputVisibility()
     {
-        MeanFieldsPanel.IsVisible = IsMeanMode;
-        ProportionFieldsPanel.IsVisible = !IsMeanMode;
+        MeanFieldsPanel.IsVisible = Mode == CalculationMode.MeanInterval;
+        ProportionFieldsPanel.IsVisible = Mode == CalculationMode.ProportionInterval;
+        MeanSampleSizeFieldsPanel.IsVisible = Mode == CalculationMode.MeanSampleSize;
+        ProportionSampleSizeFieldsPanel.IsVisible = Mode == CalculationMode.ProportionSampleSize;
         UpdateKeypadCapabilities();
     }
 
@@ -659,6 +842,14 @@ public partial class MainWindow : Window
     }
 
     private static string FormatInteger(int value) => value.ToString("0", BrazilianCulture);
+    private enum CalculationMode
+    {
+        MeanInterval,
+        ProportionInterval,
+        MeanSampleSize,
+        ProportionSampleSize
+    }
+
 
     private sealed record CalculationInput(
         bool IsMean,

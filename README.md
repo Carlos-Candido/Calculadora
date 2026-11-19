@@ -1,6 +1,6 @@
 # Calculadora estatística
 
-Aplicativo desktop em C# com .NET 10 e Avalonia 12.1.4 para calcular intervalos de confiança de média e proporção. A interface e os cálculos são locais: depois de restaurar as dependências e obter a distribuição, não há navegador, servidor web, login, banco de dados ou serviço externo durante o uso.
+Aplicativo desktop em C# com .NET 10 e Avalonia 12.1.4 para calcular intervalos de confiança e tamanhos mínimos de amostra para média e proporção. A interface e os cálculos são locais: depois de restaurar as dependências e obter a distribuição, não há navegador, servidor web, login, banco de dados ou serviço externo durante o uso.
 
 ## Desenvolvimento
 
@@ -17,7 +17,7 @@ Para executar a suíte do Core:
 dotnet test tests/Calculadora.Core.Tests/Calculadora.Core.Tests.csproj
 ```
 
-A janela usa Avalonia com tema Fluent e acompanha a preferência de tema claro/escuro do sistema. O layout compacto tem visor grande alinhado à direita, seletores e campos em duas colunas e um teclado numérico real de 4×4; teclas arredondadas e o botão azul `=` aproveitam a aparência de calculadora desktop, sem operadores, memória ou funções científicas simuladas. Os controles começam vazios. Durante a edição, o visor indica `ENTRADA` e mostra o campo numérico ativo; após um cálculo válido, indica `INTERVALO DE CONFIANÇA` e o nível escolhido. O estado vazio usa um traço, nunca um zero fictício. Mudar fórmula, confiança, tipo de desvio ou qualquer entrada remove o resultado anterior. Use vírgula ou ponto como separador decimal, sem agrupamento de milhares. As entradas `n` e `k` aceitam somente inteiros. O teclado insere dígitos na posição do cursor ou substitui a seleção; `⌫` apaga a seleção ou o caractere anterior, `CE` limpa apenas o campo ativo, `±` e `,` só ficam disponíveis em entradas decimais e `C` limpa a calculadora mantendo a fórmula selecionada.
+A janela usa Avalonia com tema Fluent e acompanha a preferência de tema claro/escuro do sistema. O layout compacto tem visor grande alinhado à direita, seletor de fórmula em largura total, campos em duas colunas e um teclado numérico real de 4×4; teclas arredondadas e o botão azul `=` aproveitam a aparência de calculadora desktop, sem operadores, memória ou funções científicas simuladas. Os controles começam vazios. Durante a edição, o visor indica `ENTRADA` e mostra o campo numérico ativo; após um cálculo válido, indica o modo do resultado e o nível escolhido. O estado vazio usa um traço, nunca um zero fictício. Mudar fórmula, confiança, tipo de desvio ou qualquer entrada remove o resultado anterior. Use vírgula ou ponto como separador decimal, sem agrupamento de milhares. As entradas `n` e `k` aceitam somente inteiros. O teclado insere dígitos na posição do cursor ou substitui a seleção; `⌫` apaga a seleção ou o caractere anterior, `CE` limpa apenas o campo ativo, `±` e `,` só ficam disponíveis em entradas decimais e `C` limpa a calculadora mantendo a fórmula selecionada.
 
 ## Publicações portáteis
 
@@ -41,7 +41,9 @@ A publicação Linux usa a plataforma X11 do Avalonia. Em sessão Wayland, é ne
 - Confiança disponível: 90%, 95% e 99%, usando os valores críticos Z = 1,645; 1,96; e 2,575.
 - Resultados são calculados com precisão completa em `double`; não há arredondamento intermediário. A tela apresenta quatro casas decimais e, para proporções, também percentuais com duas casas. Valores não nulos que arredondariam para zero são mostrados em notação científica.
 - Na proporção, menos de cinco ocorrências ou não ocorrências gera um aviso sobre a aproximação normal. Limites fora de 0%–100% são preservados e sinalizados, nunca truncados. Esses avisos não mudam o método estatístico.
-- Esta entrega não inclui tamanho amostral, histórico, distribuição móvel ou métodos além dos apresentados nos materiais de referência.
+- Tamanho mínimo da amostra para média: `n = (Z × σ / E)²`; para proporção: `n = Z² × p × (1−p) / E²`. O resultado arredonda para cima e tem mínimo de uma observação.
+- Na proporção de planejamento, p é opcional: em branco, usa 50% como estimativa conservadora. Digite proporções em porcentagem e margens em pontos percentuais (sem o símbolo `%`).
+- Fonte do planejamento: *Tamanho da Amostra — AMS*, páginas 3–7 e 9.
 
 Fontes exibidas na janela: *Intervalo de Confiança - Média*, página 5; e *Intervalo de Confiança - Proporção*, página 2.
 
@@ -49,7 +51,7 @@ Fontes exibidas na janela: *Intervalo de Confiança - Média*, página 5; e *Int
 
 A interface usa controles nativos Avalonia com nomes acessíveis, foco visível do tema, erros anunciados e rolagem vertical. `Tab` percorre fórmula, confiança, campos ativos, teclas da esquerda para a direita e de cima para baixo e, após o cálculo, os detalhes selecionáveis. `Enter` atua sobre o controle focado: em um campo numérico aciona o cálculo padrão (`=`), enquanto em uma tecla numérica ativa essa tecla; o seletor aberto mantém sua navegação normal. O foco inicial, após limpar ou ao trocar de fórmula vai para o primeiro campo numérico ativo. Os campos do modo inativo ficam invisíveis e fora da navegação. Ao mover o foco para uma tecla, o campo de edição ativo e sua seleção permanecem como alvo do teclado.
 
-Os blocos de interpretação, valores e passos são selecionáveis para cópia: navegue até o bloco, selecione o texto (por exemplo, `Ctrl+A`) e use `Ctrl+C`. IDs de automação estáveis para ensaios: `FormulaSelector`, `ConfidenceSelector`, `MeanInput`, `SampleSizeMeanInput`, `DeviationKindSelector`, `DeviationInput`, `SuccessesInput`, `SampleSizeProportionInput`, `Key7Button` (e `Key0Button`–`Key9Button`), `BackspaceButton`, `ClearEntryButton`, `SignButton`, `DecimalButton`, `ClearButton` (`C`), `CalculateButton` (`=`), `DisplayModeText`, `DisplayContextText`, `DisplayText` (visor), `IntervalText`, `ResultDetails` e `StepsText`.
+IDs de automação estáveis para ensaios: `FormulaSelector`, `ConfidenceSelector`, `MeanInput`, `SampleSizeMeanInput`, `DeviationKindSelector`, `DeviationInput`, `SuccessesInput`, `SampleSizeProportionInput`, `PlanningDeviationInput`, `MeanMarginInput`, `ExpectedProportionInput`, `ProportionMarginInput`, `Key7Button` (e `Key0Button`–`Key9Button`), `BackspaceButton`, `ClearEntryButton`, `SignButton`, `DecimalButton`, `ClearButton` (`C`), `CalculateButton` (`=`), `DisplayModeText`, `DisplayContextText`, `DisplayText` (visor), `IntervalText`, `ResultDetails` e `StepsText`.
 
 ## Estado de verificação das plataformas
 
