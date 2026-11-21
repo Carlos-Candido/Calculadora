@@ -21,14 +21,17 @@ A janela usa Avalonia com tema Fluent e acompanha a preferência de tema claro/e
 
 ## Publicações portáteis
 
-As pastas de saída são locais, completas e ignoradas pelo Git (`artifacts/`):
+As pastas de saída são locais, completas e ignoradas pelo Git (`artifacts/`). Para publicar as duas plataformas e registrar o aplicativo no menu Linux, execute a partir da raiz:
 
 ```bash
-dotnet publish src/Calculadora.Desktop/Calculadora.Desktop.csproj -c Release -r linux-x64 --self-contained true -p:PublishTrimmed=false -p:PublishSingleFile=false -o artifacts/linux-x64
-dotnet publish src/Calculadora.Desktop/Calculadora.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishTrimmed=false -p:PublishSingleFile=false -o artifacts/win-x64
+bash scripts/package-desktop.sh
 ```
 
-Copie e mantenha a pasta inteira de cada RID; não distribua apenas o executável. Para iniciar no Linux, use `./artifacts/linux-x64/Calculadora.Desktop`. No Windows x64, abra `artifacts/win-x64/Calculadora.Desktop.exe`. As publicações incluem o runtime .NET, mas não as bibliotecas gráficas do sistema operacional.
+O script não recebe argumentos e não usa `sudo`; exige o SDK do .NET 10 (`dotnet`), `zip` e `desktop-file-validate`. Ele gera `artifacts/linux-x64/`, `artifacts/win-x64/` e `artifacts/Calculadora-win-x64.zip`, e atualiza a entrada `calculadora.desktop` em `${XDG_DATA_HOME:-$HOME/.local/share}/applications/` (se `XDG_DATA_HOME` não for absoluto, usa o diretório padrão). Para iniciar no Linux, abra **Calculadora** no menu de aplicativos ou execute `./artifacts/linux-x64/Calculadora.Desktop`.
+
+No Windows x64, extraia o ZIP completo e mantenha a pasta `win-x64/` inteira; não distribua apenas o executável. Abra `Calculadora.Desktop.exe` diretamente ou execute `Criar atalho.cmd` dentro da pasta extraída. O comando cria ou atualiza `Calculadora.lnk` na Área de Trabalho, apontando para o executável na pasta extraída — não para o conteúdo do ZIP — e usando essa pasta como diretório de trabalho. Nenhum instalador ou privilégio de administrador é necessário.
+
+As publicações incluem o runtime .NET, mas não as bibliotecas gráficas do sistema operacional.
 
 ### Linux e XWayland
 
