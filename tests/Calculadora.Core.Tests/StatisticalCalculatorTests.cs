@@ -231,6 +231,19 @@ public sealed class StatisticalCalculatorTests
             exception.Message.Split(" (")[0]);
     }
 
+    [Fact]
+    public void CalculateProportionSampleSize_UnknownProportionUsesConservativeEstimate()
+    {
+        const double marginOfError = 0.03;
+        const ConfidenceLevel confidence = ConfidenceLevel.Percent95;
+
+        var result = StatisticalCalculator.CalculateProportionSampleSize(marginOfError, confidence);
+        var explicitEstimate = StatisticalCalculator.CalculateProportionSampleSize(0.5, marginOfError, confidence);
+
+        Assert.Equal(explicitEstimate, result);
+        Assert.Equal(1068, result.MinimumSampleSize);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-0.1)]

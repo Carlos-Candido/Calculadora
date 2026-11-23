@@ -126,10 +126,10 @@
           <TextBlock Text="Fórmula" FontSize="12" FontWeight="SemiBold" Classes="muted" />
           <ComboBox x:Name="FormulaSelector" AutomationProperties.Name="Fórmula estatística"
                     AutomationProperties.AutomationId="FormulaSelector" SelectedIndex="0" MinHeight="42" HorizontalAlignment="Stretch" TabIndex="0">
-            <ComboBoxItem Content="Média" />
-            <ComboBoxItem Content="Proporção" />
-            <ComboBoxItem Content="Tamanho amostral — média" />
-            <ComboBoxItem Content="Tamanho amostral — proporção" />
+            <ComboBoxItem Content="Intervalo de confiança — média" />
+            <ComboBoxItem Content="Intervalo de confiança — proporção" />
+            <ComboBoxItem Content="Tamanho mínimo da amostra — média" />
+            <ComboBoxItem Content="Tamanho mínimo da amostra — proporção" />
           </ComboBox>
         </StackPanel>
         <StackPanel Grid.Row="1" Spacing="4">

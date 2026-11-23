@@ -104,6 +104,9 @@ public static class StatisticalCalculator
         var ratio = z * Math.Sqrt(proportion * (1 - proportion)) / marginOfError;
         return CreateSampleSizeResult(z, ratio * ratio);
     }
+    public static SampleSizeResult CalculateProportionSampleSize(
+        double marginOfError, ConfidenceLevel confidence)
+        => CalculateProportionSampleSize(0.5d, marginOfError, confidence);
 
     private static SampleSizeResult CreateSampleSizeResult(double z, double rawSampleSize)
     {

@@ -229,7 +229,9 @@ public partial class MainWindow : Window
         {
             var result = isMean
                 ? StatisticalCalculator.CalculateMeanSampleSize(standardDeviation, marginOfError, confidence)
-                : StatisticalCalculator.CalculateProportionSampleSize(proportion, marginOfError, confidence);
+                : assumedProportion
+                    ? StatisticalCalculator.CalculateProportionSampleSize(marginOfError, confidence)
+                    : StatisticalCalculator.CalculateProportionSampleSize(proportion, marginOfError, confidence);
             RenderSampleSizeResult(
                 result, mode, confidence, isMean ? standardDeviation : proportion, marginOfError, assumedProportion);
         }
